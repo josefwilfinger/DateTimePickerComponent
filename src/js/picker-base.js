@@ -78,7 +78,7 @@
  * @property {string} date_output The date format returned to the value attribute of `input.date_output` (accepted values are short_ISO, full_ISO and timestamp)
  * @property {number} min_range The minimum range in milliseconds that must elapse between `start_date` and `end_date`
  * @property {number} round_to Minutes are rounded to the `round_to` value (if any) and his multiples
- */
+  */
 export function PickerBase() {
   this.i18n = {
     'jan':'Jan',
@@ -122,6 +122,19 @@ export function PickerBase() {
     'done':'Done',
   };
 
+  //holds valid dates. If this is not empty only dates in this array are valid and selectable  
+  this.valid_dates = [];
+
+  //function is called when the date changes
+  this.onDateChanged = null;
+
+  //function is called when the time changes
+  this.onTimeChanged = null;
+
+
+  //time infos which are displayed at the time picker
+  this.time_infos = [];
+
   const ms_per_day = 24 * 60 * 60 * 1000;
   const default_days_order = [ 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat' ];
   const months_order = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ];
@@ -150,6 +163,28 @@ export function PickerBase() {
   }
 
 
+  this.clearValidDates = function()
+  {
+    this.valid_dates = [];
+  }
+
+  /**
+   * Adds a Date object to the valid dates list. 
+   *
+   * @param {HTMLDivElement} picker The picker currently open
+   */
+  this.addValidDate = function(valid_date)
+  {
+    if(valid_date instanceof Date)
+    {
+      this.valid_dates.push(valid_date.getTime());
+    }
+    else
+    {
+      this.valid_dates.push(valid_date);
+    }
+   
+  }
 
 
   /**
@@ -260,8 +295,25 @@ export function PickerBase() {
   }
 
 
+/**
+   * @desc
+   * Tests if the given time is in the valid_times array to set the disable property of a date.     
+   * @param {number} time The time information from a Date object via getTime()
+   * @return {boolean} true if the time is in the array Otherweise false
+   */
+this.isValidDate = function(time)
+{
+  let found = false;
+  this.valid_dates.forEach((elem)=>{
+    if(elem === time)
+    {
+      found = true;
+      return true;
+    }
+  });
 
-
+  return found;
+}
 
   /**
    * @desc
@@ -278,7 +330,7 @@ export function PickerBase() {
     const _curr_day = new Date( date.getFullYear(), date.getMonth(), day ).getTime();
 
     let class_name = 'day ';
-    if( _curr_day < _dates._first_date || _curr_day > _dates._last_date ) {
+    if( _curr_day < _dates._first_date || _curr_day > _dates._last_date || !this.isValidDate(_curr_day)) {
       class_name += 'disabled ';
     } else {
       class_name += 'selectable ';
@@ -745,6 +797,12 @@ export function PickerBase() {
     this.printDateAndTime( o.container, o.date );
 
     this.closePicker( o.picker, o.btn, 500 );
+
+    //if a event listener was set execute it
+    if(this.onDateChanged!==null)
+    {
+      this.onDateChanged(o.date);
+    }
   }
 
 
@@ -772,9 +830,15 @@ export function PickerBase() {
       coll[ i ].className = this.getHourClassName( coll[ i ].textContent, o.date );
     }
 
-    this.printDateAndTime( o.container, o.date );
+    this.printDateAndTime( o.container, o.date );    
 
     this.closePicker( o.picker, o.btn, 500 );
+
+    //if a event listener was set execute it
+    if(this.onTimeChanged!==null)
+    {
+      this.onTimeChanged(o.date);
+    }
   }
 
 
@@ -982,8 +1046,8 @@ export function PickerBase() {
       this.printDateAndTime( container, day );
       this.closePicker( picker, btn, 500 );
 
-      button_confirm.disabled = true;
-    }
+      button_confirm.disabled = true;      
+    }   
 
     select_hours_el.onchange = onChangeHour;
     button_confirm.onclick = onSetTime;
@@ -1107,6 +1171,15 @@ export function PickerBase() {
 
 
 
+  this.addTimeInfo = function(info)
+  {
+    this.time_infos.push(info);
+  }
+
+  this.clearTimeInfos = function()
+  {
+    this.time_infos = [];
+  }
 
 
   /**
@@ -1120,26 +1193,34 @@ export function PickerBase() {
    * @see {@link module:js/picker-base.PickerBase#getHourClassName|getHourClassName}
    * @see {@link module:js/picker-base.PickerBase#addOnSelectEvent|addOnSelectEvent}
    */
-  this.showTimePicker = function( picker, day ) {
+  this.showTimePicker = function( picker, day) {
     const hours = [
       '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30', '04:00', '04:30', '05:00', '05:30', '06:00', '06:30', '07:00', '07:30',
       '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
       '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30'
-    ];
+    ];    
+    
 
     let i = 0, html = '', class_name;
 
-    // Nine rows
-    for( let j = 1; j < 9; j++ ) {
+    let timeData = hours;
+
+    if(this.time_infos.length > 0)
+    {
+      timeData = this.time_infos;
+    }
+
+    // rows with 6 elements
+    for( let j = 1; j < (timeData.length/6); j++ ) {
       html += "<tr>";
 
       // Six columns
       for( i = 1 * i ; i < 6 * j; i++ ) {
-        if( hours[ i ] ) {
+        if( timeData[ i ] ) {
           class_name = ''
-          class_name = this.getHourClassName( hours[ i ], day );
+          class_name = this.getHourClassName( timeData[ i ], day );
 
-          html += `<td class="${ class_name }">${ hours[ i ] }</td>`;
+          html += `<td class="${ class_name }">${ timeData[ i ] }</td>`;
         } else {
           html += `<td class="white-background disabled"></td>`;
         }
