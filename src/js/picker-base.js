@@ -1200,8 +1200,8 @@ this.isValidDate = function(time)
       '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30'
     ];    
     
-
-    let i = 0, html = '', class_name;
+    const elementsPerRow = 6;
+    let html = '', class_name;
 
     let timeData = hours;
 
@@ -1210,13 +1210,13 @@ this.isValidDate = function(time)
       timeData = this.time_infos;
     }
 
-    // rows with 6 elements
-    for( let j = 1; j < (timeData.length/6); j++ ) {
+    // rows with elementsPerRow elements
+    for( let j = 0; j < Math.ceil(timeData.length/elementsPerRow); j++ ) {
       html += "<tr>";
 
       // Six columns
-      for( i = 1 * i ; i < 6 * j; i++ ) {
-        if( timeData[ i ] ) {
+      for( let i = elementsPerRow * j ; i < ((j+1)*elementsPerRow); i++ ) {
+        if( i< timeData.length) {
           class_name = ''
           class_name = this.getHourClassName( timeData[ i ], day );
 
