@@ -69,4 +69,18 @@ export function DateTimePicker( id, settings = {} ) {
 
   this.start_date_btn.addEventListener( 'click', this.onOpenPicker );
   this.start_time_btn.addEventListener( 'click', this.onOpenPicker );
+
+   /**
+   * Sets the `time` info of the current date.    
+   *
+   * @param {number} hour The hour of the time.
+   * @param {number} minute The minute of the time.
+   * @param {number} second The second of the time.
+   */
+    this.setTime = function(hour, minute=0, second=0)
+      {
+        this.start_date.setHours(hour, minute,second);        
+        this.checkDateTimeConsistency();
+        this.printDateAndTime(this.start_container, this.start_date);
+      }
 }
